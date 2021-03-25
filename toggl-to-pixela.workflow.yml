@@ -5,17 +5,80 @@ main:
     - init_variables:
         assign:
           - project: ${sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER")}
-    - call_subworkflow:
+    - build_parameters:
         call: build_params
         args:
           params: ${args}
         result: merged_params
-    - log_merged_params:
+
+    - get_toggl_value:
+        call: call_toggl_api
+        args:
+          project: ${project}
+          params: ${merged_params}
+        result: toggl_res
+
+    - conditional_switch:
+        switch:
+          - condition: ${len(toggl_res.body.data) > 0}
+            steps:
+              - to_min_value:
+                  assign:
+                    - toggl_value: ${toggl_res.body.total_grand / 1000 / 60}
+              - log_value:
+                  call: sys.log
+                  args:
+                    text: ${toggl_value}
+                    severity: INFO
+              - to_pixela:
+                  call: call_pixela_api
+                  args:
+                    project: ${project}
+                    params: ${merged_params}
+                    toggl_value: ${toggl_value}
+                  result: pixela_res
+
+            next: return_value
+        next: no_reading_time
+
+    - no_reading_time:
+        steps:
+          - return:
+              return: "no reading time."
+
+    - return_value:
+        return: ${pixela_res}
+
+call_pixela_api:
+  params: [project, params, toggl_value]
+  steps:
+    - get_pixela_token:
+        call: get_token_from_secret_manager
+        args:
+          project: ${project}
+          secret: PIXELA_API_TOKEN
+        result: pixela_api_token
+    - to_pixela:
+        call: http.put
+        args:
+          url: ${"https://pixe.la/v1/users/" + params.pixela.user + "/graphs/" + params.pixela.graph_id + "/" + params.pixela.target_date}
+          headers:
+            X-USER-TOKEN: ${pixela_api_token}
+          body:
+            quantity: ${string(toggl_value)}
+        result: pixela_res
+    - log_pixela:
         call: sys.log
         args:
-          text: ${json.encode_to_string(merged_params)}
+          text: ${json.encode_to_string(pixela_res)}
           severity: INFO
 
+    - return_value:
+        return: ${pixela_res}
+
+call_toggl_api:
+  params: [project, params]
+  steps:
     - get_toggl_token:
         call: get_token_from_secret_manager
         args:
@@ -33,11 +96,11 @@ main:
             Authorization: ${"Basic " + basic_auth_value}
           query:
             page: 1
-            workspace_id: ${merged_params.toggl.workspace_id}
-            since: ${merged_params.toggl.since}
-            until: ${merged_params.toggl.until}
+            workspace_id: ${params.toggl.workspace_id}
+            since: ${params.toggl.since}
+            until: ${params.toggl.until}
             user_agent: api_test
-            project_ids: ${merged_params.toggl.project_id}
+            project_ids: ${params.toggl.project_id}
         result: toggl_res
     - log_toggl:
         call: sys.log
@@ -45,50 +108,8 @@ main:
           text: ${json.encode_to_string(toggl_res)}
           severity: INFO
 
-    - conditional_switch:
-        switch:
-          - condition: ${len(toggl_res.body.data) > 0}
-            steps:
-              - to_min_value:
-                  assign:
-                    - toggl_value: ${toggl_res.body.total_grand / 1000 / 60}
-              - log_value:
-                  call: sys.log
-                  args:
-                    text: ${toggl_value}
-                    severity: INFO
-
-              - get_pixela_token:
-                  call: get_token_from_secret_manager
-                  args:
-                    project: ${project}
-                    secret: PIXELA_API_TOKEN
-                  result: pixela_api_token
-              - to_pixela:
-                  call: http.put
-                  args:
-                    url: ${"https://pixe.la/v1/users/" + merged_params.pixela.user + "/graphs/" + merged_params.pixela.graph_id + "/" + merged_params.pixela.target_date}
-                    headers:
-                      X-USER-TOKEN: ${pixela_api_token}
-                    body:
-                      quantity: ${string(toggl_value)}
-                  result: pixela_res
-              - log_pixela:
-                  call: sys.log
-                  args:
-                    text: ${json.encode_to_string(pixela_res)}
-                    severity: INFO
-
-            next: return_value
-        next: no_reading_time
-
-    - no_reading_time:
-        steps:
-          - return:
-              return: "no reading time."
-
     - return_value:
-        return: ${pixela_res}
+        return: ${toggl_res}
 
 get_token_from_secret_manager:
   params: [project, secret]
@@ -194,6 +215,13 @@ build_params:
                 user: ${pixela_user}
                 graph_id: ${pixela_graph_id}
                 target_date: ${pixela_target_date}
+
+    - log_fixed_params:
+        call: sys.log
+        args:
+          text: ${json.encode_to_string(fixed_params)}
+          severity: INFO
+
     - return_varams:
         return: ${fixed_params}
 
