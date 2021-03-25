@@ -1,0 +1,208 @@
+---
+main:
+  params: [args]
+  steps:
+    - init_variables:
+        assign:
+          - project: ${sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER")}
+    - call_subworkflow:
+        call: build_params
+        args:
+          params: ${args}
+        result: merged_params
+    - log_merged_params:
+        call: sys.log
+        args:
+          text: ${json.encode_to_string(merged_params)}
+          severity: INFO
+
+    - get_toggl_token:
+        call: get_token_from_secret_manager
+        args:
+          project: ${project}
+          secret: TOGGL_API_TOKEN
+        result: toggl_api_token
+    - set_toggl_auth_value:
+        assign:
+          - basic_auth_value: ${base64.encode(text.encode(toggl_api_token + ":api_token"))}
+    - get_toggl_value:
+        call: http.get
+        args:
+          url: https://toggl.com/reports/api/v2/summary
+          headers:
+            Authorization: ${"Basic " + basic_auth_value}
+          query:
+            page: 1
+            workspace_id: ${merged_params.toggl.workspace_id}
+            since: ${merged_params.toggl.since}
+            until: ${merged_params.toggl.until}
+            user_agent: api_test
+            project_ids: ${merged_params.toggl.project_id}
+        result: toggl_res
+    - log_toggl:
+        call: sys.log
+        args:
+          text: ${json.encode_to_string(toggl_res)}
+          severity: INFO
+
+    - conditional_switch:
+        switch:
+          - condition: ${len(toggl_res.body.data) > 0}
+            steps:
+              - to_min_value:
+                  assign:
+                    - toggl_value: ${toggl_res.body.total_grand / 1000 / 60}
+              - log_value:
+                  call: sys.log
+                  args:
+                    text: ${toggl_value}
+                    severity: INFO
+
+              - get_pixela_token:
+                  call: get_token_from_secret_manager
+                  args:
+                    project: ${project}
+                    secret: PIXELA_API_TOKEN
+                  result: pixela_api_token
+              - to_pixela:
+                  call: http.put
+                  args:
+                    url: ${"https://pixe.la/v1/users/" + merged_params.pixela.user + "/graphs/" + merged_params.pixela.graph_id + "/" + merged_params.pixela.target_date}
+                    headers:
+                      X-USER-TOKEN: ${pixela_api_token}
+                    body:
+                      quantity: ${string(toggl_value)}
+                  result: pixela_res
+              - log_pixela:
+                  call: sys.log
+                  args:
+                    text: ${json.encode_to_string(pixela_res)}
+                    severity: INFO
+
+            next: return_value
+        next: no_reading_time
+
+    - no_reading_time:
+        steps:
+          - return:
+              return: "no reading time."
+
+    - return_value:
+        return: ${pixela_res}
+
+get_token_from_secret_manager:
+  params: [project, secret]
+  steps:
+    - get_secret:
+        try:
+          call: googleapis.secretmanager.v1.projects.secrets.versions.access
+          args:
+            name: ${"projects/" + project + "/secrets/" + secret + "/versions/latest"}
+          result: secretResult
+        except:
+          as: e
+          steps:
+            - handle_secret_manager_error:
+                switch:
+                  - condition: ${e.code == 404}
+                    raise: "Secret not found"
+                  - condition: ${e.code == 403}
+                    raise: "Error authenticating to Secret Manager"
+            - unhandled_exception:
+                raise: ${e}
+    - return_secret:
+        return: ${text.decode(base64.decode(secretResult.payload.data))}
+
+build_params:
+  params: [params]
+  steps:
+    - get_yesterday:
+        call: http.get
+        args:
+          url: ${params.url + "/yesterday"}
+          query:
+            zone: Asia/Tokyo
+          auth:
+            type: OIDC
+            audience: ${params.url}
+        result: yesterday_res
+    - log_yesterday:
+        call: sys.log
+        args:
+          text: ${json.encode_to_string(yesterday_res)}
+          severity: INFO
+
+    - fix_since:
+        call: fix_value
+        args:
+          params: ${params}
+          key: since
+          default: ${yesterday_res.body.time.from}
+        result: toggl_since
+    - fix_until:
+        call: fix_value
+        args:
+          params: ${params}
+          key: until
+          default: ${yesterday_res.body.time.to}
+        result: toggl_until
+    - fix_workspace_id:
+        call: fix_value
+        args:
+          params: ${params}
+          key: workspace_id
+          default: 0
+        result: toggl_workspace_id
+    - fix_project_id:
+        call: fix_value
+        args:
+          params: ${params}
+          key: project_id
+          default: 0
+        result: toggl_project_id
+    - fix_user:
+        call: fix_value
+        args:
+          params: ${params}
+          key: user
+          default: 'test'
+        result: pixela_user
+    - fix_graph_id:
+        call: fix_value
+        args:
+          params: ${params}
+          key: graph_id
+          default: 'test'
+        result: pixela_graph_id
+    - fix_date:
+        call: fix_value
+        args:
+          params: ${params}
+          key: target_date
+          default: ${yesterday_res.body.ymd.from}
+        result: pixela_target_date
+
+    - build:
+        assign:
+          - fixed_params:
+              toggl:
+                workspace_id: ${toggl_workspace_id}
+                since: ${toggl_since}
+                until: ${toggl_until}
+                project_id: ${toggl_project_id}
+              pixela:
+                user: ${pixela_user}
+                graph_id: ${pixela_graph_id}
+                target_date: ${pixela_target_date}
+    - return_varams:
+        return: ${fixed_params}
+
+fix_value:
+  params: [params, key, default]
+  steps:
+    - check_value:
+        switch:
+          - condition: ${key in params}
+            return: ${params[key]}
+          - condition: ${not(key in params)}
+            return: ${default}
