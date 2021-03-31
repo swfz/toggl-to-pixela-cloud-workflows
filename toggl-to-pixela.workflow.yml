@@ -39,12 +39,12 @@ main:
                   result: pixela_res
 
             next: return_value
-        next: no_reading_time
+        next: no_project_record
 
-    - no_reading_time:
+    - no_project_record:
         steps:
           - return:
-              return: "no reading time."
+              return: "not found target project time."
 
     - return_value:
         return: ${pixela_res}
