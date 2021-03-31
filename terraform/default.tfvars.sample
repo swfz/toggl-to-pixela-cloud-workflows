@@ -1,0 +1,10 @@
+region  = "us-central1"
+project = ""
+pixela = {
+  user = ""
+  graph_id = ""
+}
+toggl = {
+  workspace_id = 
+  project_id = 
+}

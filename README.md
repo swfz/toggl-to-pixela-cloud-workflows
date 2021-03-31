@@ -32,7 +32,7 @@ $ gcloud functions deploy datetime --project=sample-project-111111 --runtime=rub
 
 - default.tfvars
 
-次の項目を`tfvars`ファイルに記入する
+default.tfvars.sampleをもとに次の項目を`default.tfvars`ファイルに記入する
 
 - GCPのリージョンとプロジェクトID
 - Toggl上の集計したいプロジェクトのworkspace_idとproject_id
