@@ -12,7 +12,7 @@ Togglの特定プロジェクトの特定期間の作業時間総計をPixelaに
 参考程度にgcloudコマンドで登録する方法
 
 ```shell
-$ echo $API_TOKEN | gcloud secrets create sample-secret --replication-policy=automatic --data-file=-
+$ echo -n $API_TOKEN | gcloud secrets create sample-secret --replication-policy=automatic --data-file=-
 ```
 
 ## Pixela
@@ -20,6 +20,31 @@ $ echo $API_TOKEN | gcloud secrets create sample-secret --replication-policy=aut
 事前にグラフを作成する(数値はfloat)
 
 ## 環境構築
+
+- リージョンについて
+
+2021-04-01現在Workflowsを使えるリージョンが3つのみなので今の所`us-central`で統一するのが良さそう
+
+### APIの有効化
+
+必要なAPIの有効化を行う
+
+```shell
+gcloud services enable iam.googleapis.com
+gcloud services enable cloudfunctions.googleapis.com
+gcloud services enable cloudscheduler.googleapis.com
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable workflows.googleapis.com
+gcloud services enable secretmanager.googleapis.com
+```
+
+- app engineの有効化
+
+Cloud SchedulerはAppEngineを設定しないと使用できないので使用できるよう設定する
+
+```shell
+$ gcloud app create --region=us-central
+```
 
 ### CloudFunctions
 
