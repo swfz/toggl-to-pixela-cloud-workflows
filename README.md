@@ -12,7 +12,8 @@ Togglの特定プロジェクトの特定期間の作業時間総計をPixelaに
 参考程度にgcloudコマンドで登録する方法
 
 ```shell
-$ echo -n $API_TOKEN | gcloud secrets create sample-secret --replication-policy=automatic --data-file=-
+$ echo -n $TOGGL_API_TOKEN | gcloud secrets create TOGGL_API_TOKEN --replication-policy=automatic --data-file=-
+$ echo -n $PIXELA_API_TOKEN | gcloud secrets create PIXELA_API_TOKEN --replication-policy=automatic --data-file=-
 ```
 
 ## Pixela
@@ -71,8 +72,8 @@ pixela = {
   graph_id = "test"
 }
 toggl = {
-  workspace_id = 3913543
-  project_id = 156548296
+  workspace_id = 0
+  project_id = 0
 }
 ```
 
