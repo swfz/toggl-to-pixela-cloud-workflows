@@ -1,4 +1,4 @@
-data google_cloudfunctions_function datetime {
+data "google_cloudfunctions_function" "datetime" {
   name = "datetime"
 }
 
@@ -8,18 +8,18 @@ locals {
     bar = "baz"
   }
   workflow_params = {
-    user = local.pixela.user
-    graph_id = local.pixela.graph_id
+    user         = local.pixela.user
+    graph_id     = local.pixela.graph_id
     workspace_id = local.toggl.workspace_id
-    project_id = local.toggl.project_id
-    url = data.google_cloudfunctions_function.datetime.https_trigger_url
+    project_id   = local.toggl.project_id
+    url          = data.google_cloudfunctions_function.datetime.https_trigger_url
   }
   request_params = {
     argument = jsonencode(local.workflow_params)
   }
 }
 
-resource google_cloud_scheduler_job workflow_job {
+resource "google_cloud_scheduler_job" "workflow_job" {
   name             = "toggl-to-pixela-workflow-scheduler"
   description      = "Kick Toggl To Pixela Workflow"
   schedule         = "0 10 * * *"

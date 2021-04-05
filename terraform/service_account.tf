@@ -1,5 +1,5 @@
 # Workflowを実行するサービスアカウント
-resource google_service_account workflow_invoker {
+resource "google_service_account" "workflow_invoker" {
   project      = local.project
   account_id   = "workflow-invoker-sa"
   display_name = "Workflow Invoker Service Account"
@@ -17,7 +17,7 @@ locals {
   ]
 }
 
-resource google_project_iam_member service_account_role {
+resource "google_project_iam_member" "service_account_role" {
   count  = length(local.sa_roles)
   role   = element(local.sa_roles, count.index)
   member = "serviceAccount:${google_service_account.workflow_invoker.email}"
