@@ -2,52 +2,66 @@
 main:
   params: [args]
   steps:
-    - init_variables:
-        assign:
-          - project: ${sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER")}
-    - build_parameters:
-        call: build_params
-        args:
-          params: ${args}
-        result: merged_params
+    - exception_handling:
+        try:
+          steps:
+            - init_variables:
+                assign:
+                  - project: ${sys.get_env("GOOGLE_CLOUD_PROJECT_NUMBER")}
+            - build_parameters:
+                call: build_params
+                args:
+                  params: ${args}
+                result: merged_params
 
-    - get_toggl_value:
-        call: call_toggl_api
-        args:
-          project: ${project}
-          params: ${merged_params}
-        result: toggl_res
+            - get_toggl_value:
+                call: call_toggl_api
+                args:
+                  project: ${project}
+                  params: ${merged_params}
+                result: toggl_res
 
-    - conditional_switch:
-        switch:
-          - condition: ${len(toggl_res.body.data) > 0}
-            steps:
-              - to_min_value:
-                  assign:
-                    - toggl_value: ${toggl_res.body.total_grand / 1000 / 60}
-              - log_value:
-                  call: sys.log
-                  args:
-                    text: ${toggl_value}
-                    severity: INFO
-              - to_pixela:
-                  call: call_pixela_api
-                  args:
-                    project: ${project}
-                    params: ${merged_params}
-                    toggl_value: ${toggl_value}
-                  result: pixela_res
+            - conditional_switch:
+                switch:
+                  - condition: ${len(toggl_res.body.data) > 0}
+                    steps:
+                      - to_min_value:
+                          assign:
+                            - toggl_value: ${toggl_res.body.total_grand / 1000 / 60}
+                      - log_value:
+                          call: sys.log
+                          args:
+                            text: ${toggl_value}
+                            severity: INFO
+                      - to_pixela:
+                          call: call_pixela_api
+                          args:
+                            project: ${project}
+                            params: ${merged_params}
+                            toggl_value: ${toggl_value}
+                          result: pixela_res
 
-            next: return_value
-        next: no_project_record
+                    next: return_value
+                next: no_project_record
 
-    - no_project_record:
-        steps:
-          - return:
-              return: "not found target project time."
+            - no_project_record:
+                steps:
+                  - return:
+                      return: "not found target project time."
 
-    - return_value:
-        return: ${pixela_res}
+            - return_value:
+                return: ${pixela_res}
+
+        except:
+          as: e
+          steps:
+            - log_error:
+                call: sys.log
+                args:
+                  text: ${json.encode_to_string(e)}
+                  severity: CRITICAL
+            - raise_error:
+                raise: ${e}
 
 call_pixela_api:
   params: [project, params, toggl_value]
