@@ -49,6 +49,11 @@ main:
 
             - no_project_record:
                 steps:
+                  - log:
+                      call: sys.log
+                      args:
+                        text: "not found target project time."
+                        severity: WARNING
                   - return:
                       return: "not found target project time."
 
