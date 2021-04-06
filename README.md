@@ -79,20 +79,26 @@ toggl = {
 
 Workflows自体は一部リージョンしか設定できないので注意が必要
 
-- backend.tf
+- tfstate
 
-`backend.tf.sample`をもとにtfstateを置くバケットを指定する
+事前に適当なtfstate用のバケットを作成する
 
-```yaml
-terraform {
-  backend "gcs" {
-    bucket  = "toggl-to-pixela-workflow-tfstate"
-    prefix  = "tfstate/toggl-to-pixela-workflow"
-  }
-}
+- e.g.)
+
+```
+gsutil mb gs://xxx-terraform-tfstate
+```
+
+bucket,prefixは適宜変更する
+
+```shell
+$ cat backend-config.tfvars
+bucket = "xxx-terraform-tfstate"
+prefix = "toggl-to-pixela-workflow.tfstate"
 ```
 
 ```
+$ terraform init -backend-config=backend-config.tfvars
 $ terraform plan -var-file=default.tfvars
 $ terraform apply -var-file=default.tfvars
 ```
