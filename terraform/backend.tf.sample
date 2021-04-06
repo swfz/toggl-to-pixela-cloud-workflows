@@ -1,0 +1,6 @@
+terraform {
+  backend "gcs" {
+    bucket  = "toggl-to-pixela-workflow-tfstate"
+    prefix  = "tfstate/toggl-to-pixela-workflow"
+  }
+}

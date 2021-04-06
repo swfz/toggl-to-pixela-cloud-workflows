@@ -58,7 +58,7 @@ $ gcloud functions deploy datetime --project=sample-project-111111 --runtime=rub
 
 - default.tfvars
 
-default.tfvars.sampleをもとに次の項目を`default.tfvars`ファイルに記入する
+`default.tfvars.sample`をもとに次の項目を`default.tfvars`ファイルに記入する
 
 - GCPのリージョンとプロジェクトID
 - Toggl上の集計したいプロジェクトのworkspace_idとproject_id
@@ -78,6 +78,19 @@ toggl = {
 ```
 
 Workflows自体は一部リージョンしか設定できないので注意が必要
+
+- backend.tf
+
+`backend.tf.sample`をもとにtfstateを置くバケットを指定する
+
+```yaml
+terraform {
+  backend "gcs" {
+    bucket  = "toggl-to-pixela-workflow-tfstate"
+    prefix  = "tfstate/toggl-to-pixela-workflow"
+  }
+}
+```
 
 ```
 $ terraform plan -var-file=default.tfvars
