@@ -29,7 +29,7 @@ main:
                       - to_min_value:
                           call: calc_toggl_value
                           args:
-                            value: toggl_res.body.total_grand
+                            value: ${toggl_res.body.total_grand}
                           result: toggl_value
                       - log_value:
                           call: sys.log
