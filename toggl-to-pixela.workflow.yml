@@ -113,7 +113,7 @@ call_toggl_api:
     - get_toggl_value:
         call: http.get
         args:
-          url: https://toggl.com/reports/api/v2/summary
+          url: https://api.track.toggl.com/reports/api/v2/summary
           headers:
             Authorization: ${"Basic " + basic_auth_value}
           query:
