@@ -165,35 +165,22 @@ get_token_from_secret_manager:
 build_params:
   params: [params]
   steps:
-    - get_yesterday:
-        call: http.get
-        args:
-          url: ${params.url + "/yesterday"}
-          query:
-            zone: Asia/Tokyo
-          auth:
-            type: OIDC
-            audience: ${params.url}
-        result: yesterday_res
-    - log_yesterday:
-        call: sys.log
-        args:
-          text: ${json.encode_to_string(yesterday_res)}
-          severity: INFO
-
+    - set_yesterday:
+        assign:
+          - yesterday: ${text.split(time.format(sys.now() - 86400, "Asia/Tokyo"), "T")[0]}
     - fix_since:
         call: fix_value
         args:
           params: ${params}
           key: since
-          default: ${yesterday_res.body.time.from}
+          default: ${yesterday + "T00:00:00"}
         result: toggl_since
     - fix_until:
         call: fix_value
         args:
           params: ${params}
           key: until
-          default: ${yesterday_res.body.time.to}
+          default: ${yesterday + "T23:59:59"}
         result: toggl_until
     - fix_workspace_id:
         call: fix_value
@@ -228,7 +215,7 @@ build_params:
         args:
           params: ${params}
           key: target_date
-          default: ${yesterday_res.body.ymd.from}
+          default: ${text.replace_all(yesterday, "-", "")}
         result: pixela_target_date
 
     - build:
