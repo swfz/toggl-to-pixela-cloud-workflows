@@ -1,7 +1,3 @@
-data "google_cloudfunctions_function" "datetime" {
-  name = "datetime"
-}
-
 locals {
   hoge = {
     foo = 1
@@ -12,7 +8,6 @@ locals {
     graph_id     = local.pixela.graph_id
     workspace_id = local.toggl.workspace_id
     project_id   = local.toggl.project_id
-    url          = data.google_cloudfunctions_function.datetime.https_trigger_url
   }
   request_params = {
     argument = jsonencode(local.workflow_params)
