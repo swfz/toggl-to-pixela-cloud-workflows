@@ -10,7 +10,6 @@ locals {
     "roles/iam.serviceAccountTokenCreator",
     "roles/workflows.invoker",
     "roles/cloudscheduler.jobRunner",
-    "roles/cloudfunctions.serviceAgent",
     "roles/secretmanager.secretAccessor",
     "roles/iam.serviceAccountUser",
     "roles/logging.logWriter",

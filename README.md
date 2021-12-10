@@ -32,7 +32,6 @@ $ echo -n $PIXELA_API_TOKEN | gcloud secrets create PIXELA_API_TOKEN --replicati
 
 ```shell
 gcloud services enable iam.googleapis.com
-gcloud services enable cloudfunctions.googleapis.com
 gcloud services enable cloudscheduler.googleapis.com
 gcloud services enable cloudbuild.googleapis.com
 gcloud services enable workflows.googleapis.com
@@ -45,13 +44,6 @@ Cloud SchedulerはAppEngineを設定しないと使用できないので使用�
 
 ```shell
 $ gcloud app create --region=us-central
-```
-
-### CloudFunctions
-
-```shell
-$ cd functions
-$ gcloud functions deploy datetime --project=sample-project-111111 --runtime=ruby27 --trigger-http --entry-point=datetime --region=us-central1
 ```
 
 ### Terraform
